@@ -22,7 +22,7 @@ let leds = [
         pin: ThreePort.Three
     }
 ]
-let triled = [
+let trileds = [
     {
         port: "1",
         redState: 0,
@@ -39,6 +39,20 @@ let triled = [
     }
 ]
 
+let robots = [
+    {
+        id: "1",
+        leftMotor: {
+            pin: FourPort.Two,
+            rotateForward: 1
+        },
+        rightMotor: {
+            pin: FourPort.One,
+            rotateForward: 0
+        }
+    }
+]
+
 
 /*
     Servo List
@@ -51,7 +65,7 @@ let triled = [
 */
 let servos = [
     {
-        hport: 1,
+        port: "1",
         stype: "r",
         pin: FourPort.One,
         state: 0,
@@ -59,7 +73,7 @@ let servos = [
         max: 100
     },
         {
-        hport: 2,
+        port: "2",
         pin: FourPort.Two,
         stype: "r",
         state: 0,
@@ -67,7 +81,7 @@ let servos = [
         max: 100
     },
     {
-        hport: 3,
+        port: "3",
         pin: FourPort.Three,
         stype: "p",
         state: 0,
@@ -75,7 +89,7 @@ let servos = [
         max: 180
     },
     {
-        hport: 4,
+        port: "4",
         pin: FourPort.Four,
         stype: "p",
         state: 0,
@@ -107,7 +121,7 @@ function controlLed(id: string, newState: number) {
 }
 
 function controlTriLed(id: string, newState: string) {
-    let foundTriLed = triled.find(function (value: any, index: number) {
+    let foundTriLed = trileds.find(function (value: any, index: number) {
         return value.port == id
     })
     if(foundTriLed) {
@@ -130,7 +144,7 @@ function controlTriLed(id: string, newState: string) {
 
 function controlServo(id: string, stype: string, newState: number) {
     let foundServo = servos.find(function (value: any, index: number) {
-        return (value.hport == id && value.stype == stype)
+        return (value.port == id && value.stype == stype)
     })
     if(foundServo) {
         if(newState != foundServo.state) {
@@ -147,26 +161,57 @@ function controlServo(id: string, stype: string, newState: number) {
     return false
 }
 
+function controlBot(id: string, direction: string, speed: number) {
+    let foundBot = robots.find(function (value: any, index: number) {
+        return (value.id == id)
+    })
+    if(foundBot) {
+        switch(direction) {
+            case 'f':
+                hummingbird.setRotationServo(foundBot.leftMotor.pin, foundBot.leftMotor.rotateForward ? speed : (speed * -1))
+                hummingbird.setRotationServo(foundBot.rightMotor.pin, foundBot.rightMotor.rotateForward ? speed : (speed * -1))
+                break;
+            case 'b':
+                hummingbird.setRotationServo(foundBot.leftMotor.pin, foundBot.leftMotor.rotateForward ? speed * -1 : speed)
+                hummingbird.setRotationServo(foundBot.rightMotor.pin, foundBot.rightMotor.rotateForward ? speed * -1 : speed)
+                break;
+            case 'r':
+                hummingbird.setRotationServo(foundBot.leftMotor.pin, foundBot.leftMotor.rotateForward ? speed: speed * -1)
+                hummingbird.setRotationServo(foundBot.rightMotor.pin, foundBot.rightMotor.rotateForward ? speed * -1 : speed)
+                break;
+            case 'l':
+                hummingbird.setRotationServo(foundBot.leftMotor.pin, foundBot.leftMotor.rotateForward ? speed * -1 : speed)
+                hummingbird.setRotationServo(foundBot.rightMotor.pin, foundBot.rightMotor.rotateForward ? speed : speed * -1)
+                break;
+            case 's':
+                hummingbird.setRotationServo(foundBot.leftMotor.pin, 0)
+                hummingbird.setRotationServo(foundBot.rightMotor.pin, 0)
+                break;
+        }
+    } else {
+        basic.showString(`Robot ${id} not found`)
+    }
+}
+
 function convertLed(value: string) {
     return value.toLowerCase() == "f" ? 100 : parseInt(value) * 10
 }
 function handleMessage(msg: string) {
     if(mbId == msg[0]) {
-        // basic.showString(msg)
         let dId = msg[2]
         switch(msg[1]) {
             case "l":
                 controlLed(dId, convertLed(msg[3]))
-                // basic.showString("led")
                 break
             case "t":
                 controlTriLed(dId, msg.substr(3,3))
-                // basic.showString("rgb")
                 break
             case "p":
             case "r":
                 controlServo(dId, msg[1], parseInt(msg.substr(3,4)))
-                // basic.showString("servo")
+                break
+            case "b":
+                controlBot(dId, msg[3].toLowerCase(), parseInt(msg.substr(4,4)))
                 break
         }
     }
